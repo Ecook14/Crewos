@@ -1,0 +1,31 @@
+# AppArmor profile for the CrewOS agent
+# Target path: /usr/bin/crewai
+
+#include <tunables/global>
+
+/usr/bin/crewai {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  # Explicitly allow reading system config
+  /etc/crewos.conf r,
+  /run/crewos/* rw,
+
+  # Deny writing to critical system directories
+  deny /etc/** w,
+  deny /sbin/** w,
+  deny /usr/sbin/** w,
+  deny /boot/** w,
+
+  # Allow user data storage
+  /root/** rw,
+  /home/crew/** rw,
+
+  # Hardware access (GPU)
+  /dev/dri/* rw,
+  /dev/nvidia* rw,
+
+  # Networking
+  network inet stream,
+  network inet6 stream,
+}

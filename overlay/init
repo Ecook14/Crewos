@@ -1,0 +1,61 @@
+#!/bin/sh
+# CrewOS Universal Init Script
+# Runs upon boot inside Linux container, microVM, or Android proot
+
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+echo "[CrewOS] Booting..."
+
+# Load configuration
+if [ -f /etc/crewos.conf ]; then
+    . /etc/crewos.conf
+fi
+
+echo "[CrewOS] OS Variant: $OS_VARIANT"
+
+# 1. Mount Essential Pseudo-Filesystems (Optimized)
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sys /sys 2>/dev/null
+mount -t devtmpfs dev /dev 2>/dev/null
+mount -t tmpfs tmpfs /tmp -o mode=1777,nodev,nosuid 2>/dev/null
+
+# 2. Apply Elite Kernel Tuning
+if [ -f /etc/sysctl.conf ]; then
+    sysctl -p /etc/sysctl.conf
+fi
+
+# 3. Run Performance & Power Optimization
+if [ -x /etc/init.d/S90perf ]; then
+    /etc/init.d/S90perf start
+fi
+
+if [ -x /etc/init.d/S80net ]; then
+    /etc/init.d/S80net start
+fi
+
+# 4. Optimized Rootfs Tuning (Remount with noatime)
+mount -o remount,noatime,nodiratime,commit=60 / 2>/dev/null || true
+
+# Load AppArmor profiles if available
+if [ -d /etc/apparmor.d ] && command -v apparmor_parser >/dev/null; then
+    echo "[CrewOS] Loading security profiles..."
+    for profile in /etc/apparmor.d/*; do
+        if [ -f "$profile" ]; then
+            apparmor_parser -r "$profile"
+        fi
+    done
+fi
+
+# GPU Detection (stub)
+if [ "$OS_VARIANT" = "gpu" ]; then
+    echo "[CrewOS] Initializing GPU Detection..."
+    # /usr/bin/gpu_detect
+fi
+
+# 8. Launch CrewOS Node Manager (with Auto-Restart Self-Healing)
+echo "[CrewOS] Launching Node Manager host..."
+while true; do
+    /usr/bin/crew-node
+    echo "[CrewOS] Node Manager crashed or exited. Restarting in 5 seconds..."
+    sleep 5
+done

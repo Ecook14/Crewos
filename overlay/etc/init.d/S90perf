@@ -1,0 +1,38 @@
+#!/bin/sh
+# CrewOS Performance & Power Optimization Script
+
+case "$1" in
+  start)
+    echo "[Performance] Tuning CPU and Power subsystems..."
+    
+    # 1. Set CPU Governor (Performance for agents, Schedutil for mobile)
+    if [ -d /sys/devices/system/cpu/cpufreq ]; then
+      for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "schedutil" > "$cpu" 2>/dev/null || echo "performance" > "$cpu"
+      done
+    fi
+
+    # 2. Disable unused hardware clocks (Power Saving)
+    # Note: Architecture specific, but common for edge/mobile
+    
+    # 3. Disk I/O Scheduler
+    # For SSDs/eMMC, 'none' or 'mq-deadline' is best
+    for sched in /sys/block/*/queue/scheduler; do
+      echo "none" > "$sched" 2>/dev/null || echo "mq-deadline" > "$sched"
+    done
+
+    # 4. Enable ZRAM (Compressed RAM Swap)
+    # Highly recommended for small memory footprints (<256MB)
+    if [ -b /dev/zram0 ]; then
+      echo "lz4" > /sys/block/zram0/comp_algorithm
+      echo "256M" > /sys/block/zram0/disksize
+      mkswap /dev/zram0
+      swapon /dev/zram0 -p 100
+    fi
+    ;;
+  stop)
+    echo "[Performance] Restoring defaults..."
+    ;;
+esac
+
+exit 0

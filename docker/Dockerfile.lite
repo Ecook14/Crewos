@@ -1,0 +1,8 @@
+FROM scratch
+# Minimal Base Image for CrewOS Lite Variant (15-40MB expected)
+
+# Add minimal root filesystem
+ADD build/crewos-lite-rootfs.tar.gz /
+
+# Define the default entrypoint
+ENTRYPOINT ["/init"]

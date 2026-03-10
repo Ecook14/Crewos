@@ -1,0 +1,25 @@
+name: Build CrewOS GPU
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-gpu:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Run Build Script (GPU)
+      run: |
+        chmod +x scripts/build_gpu.sh
+        ./scripts/build_gpu.sh
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: crewos-gpu-rootfs
+        path: build/crewos-gpu-rootfs.tar.gz

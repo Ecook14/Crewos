@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrewOS Sentinel Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0e14;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #00f2ff;
+            --text-color: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            border-right: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+        }
+
+        .content {
+            flex: 1;
+            padding: 3rem;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .agent-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .online {
+            background-color: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .offline {
+            background-color: #ff4444;
+        }
+
+        .tag {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--accent-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 8px;
+        }
+
+        .stat-group {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h2>Sentinel</h2>
+        <p style="opacity:0.5">Fleet Overview</p>
+        <nav style="margin-top: 3rem;">
+            <div style="color: var(--accent-color); font-weight: 600;">Agents</div>
+            <div style="margin-top: 1rem; opacity: 0.6;">Tasks</div>
+            <div style="margin-top: 1rem; opacity: 0.6;">Security Logs</div>
+        </nav>
+    </div>
+    <div class="content">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+            <h1>Active Agent Fleet</h1>
+            <button onclick="openDeployModal()"
+                style="background:var(--accent-color); color:var(--bg-color); border:none; padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer">Deploy
+                Workload</button>
+        </div>
+        <div id="fleet" class="card-container">
+            <!-- Cards injected here -->
+        </div>
+    </div>
+
+    <!-- Deployment Modal -->
+    <div id="deployModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center">
+        <div
+            style="background:var(--bg-color); border:1px solid var(--glass-border); padding:2.5rem; border-radius:30px; width:450px">
+            <h2>Deploy Custom Workload</h2>
+            <p style="opacity:0.6; font-size:0.9rem">Send an OCI image or Git repository to your fleet.</p>
+
+            <div style="margin-top:2rem">
+                <label style="display:block; font-size:0.8rem; margin-bottom:8px">Select Agent ID</label>
+                <select id="deployTarget"
+                    style="width:100%; background:var(--glass-bg); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:8px"></select>
+            </div>
+
+            <div style="margin-top:1.5rem">
+                <label style="display:block; font-size:0.8rem; margin-bottom:8px">Workload Type</label>
+                <select id="workloadType" onchange="toggleInputs()"
+                    style="width:100%; background:var(--glass-bg); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:8px">
+                    <option value="image">OCI Docker Image</option>
+                    <option value="git">Git Repository (Auto-Build)</option>
+                </select>
+            </div>
+
+            <div id="imageInput" style="margin-top:1.5rem">
+                <label style="display:block; font-size:0.8rem; margin-bottom:8px">Image Name (e.g.
+                    alpine:latest)</label>
+                <input type="text" id="deployImage" placeholder="python:3.11-slim"
+                    style="width:95%; background:var(--glass-bg); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:8px">
+            </div>
+
+            <div id="gitInput" style="margin-top:1.5rem; display:none">
+                <label style="display:block; font-size:0.8rem; margin-bottom:8px">Git URL</label>
+                <input type="text" id="deployGit" placeholder="https://github.com/..."
+                    style="width:95%; background:var(--glass-bg); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:8px">
+            </div>
+
+            <div style="margin-top:2.5rem; display:flex; gap:1rem">
+                <button onclick="deploy()"
+                    style="flex:1; background:var(--accent-color); color:var(--bg-color); border:none; padding:12px; border-radius:10px; font-weight:600; cursor:pointer">Kickoff
+                    Deployment</button>
+                <button onclick="closeDeployModal()"
+                    style="background:var(--glass-bg); color:white; border:none; padding:12px 20px; border-radius:10px; font-weight:600; cursor:pointer">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fleetEl = document.getElementById('fleet');
+        const targetSelect = document.getElementById('deployTarget');
+        const ws = new WebSocket('ws://' + window.location.host + '/ws');
+        let agents = [];
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'agent_update') {
+                updateAgent(data.agent);
+                if (!agents.find(a => a.id === data.agent.id)) {
+                    agents.push(data.agent);
+                    updateTargetList();
+                }
+            } else if (data.type === 'agent_offline') {
+                removeAgent(data.id);
+                agents = agents.filter(a => a.id !== data.id);
+                updateTargetList();
+            } else if (data.type === 'resource_alert') {
+                highlightAlert(data.id, data.reason);
+            }
+        };
+
+        function highlightAlert(id, reason) {
+            const el = document.getElementById(`agent-${id}`);
+            if (el) {
+                el.style.borderColor = '#ff0000';
+                el.style.boxShadow = '0 0 20px rgba(255,0,0,0.4)';
+                setTimeout(() => {
+                    el.style.borderColor = 'var(--glass-border)';
+                    el.style.boxShadow = 'none';
+                }, 5000);
+            }
+        }
+
+        function updateTargetList() {
+            targetSelect.innerHTML = agents.map(a => `<option value="${a.id}">${a.role} (${a.id})</option>`).join('');
+        }
+
+        function openDeployModal() { document.getElementById('deployModal').style.display = 'flex'; }
+        function closeDeployModal() { document.getElementById('deployModal').style.display = 'none'; }
+
+        function toggleInputs() {
+            const type = document.getElementById('workloadType').value;
+            document.getElementById('imageInput').style.display = type === 'image' ? 'block' : 'none';
+            document.getElementById('gitInput').style.display = type === 'git' ? 'block' : 'none';
+        }
+
+        function deploy() {
+            const target = targetSelect.value;
+            const type = document.getElementById('workloadType').value;
+            const body = { agent_id: target };
+
+            if (type === 'image') body.image = document.getElementById('deployImage').value;
+            else body.source = document.getElementById('deployGit').value;
+
+            fetch(type === 'image' ? '/api/deploy/image' : '/api/deploy/git', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(res => {
+                if (res.ok) {
+                    alert('Deployment instruction sent to mesh!');
+                    closeDeployModal();
+                }
+            });
+        }
+
+        function updateAgent(agent) {
+            let el = document.getElementById(`agent-${agent.id}`);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = `agent-${agent.id}`;
+                el.className = 'agent-card';
+                fleetEl.appendChild(el);
+            }
+
+            el.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:space-between">
+                    <span style="font-weight:600">${agent.role}</span>
+                    <span class="status-dot online"></span>
+                </div>
+                <p style="font-size:0.85rem; opacity:0.6; margin: 0.5rem 0 1rem 0">${agent.id}</p>
+                <div>
+                    <span class="tag">${agent.os_variant}</span>
+                    <span class="tag">${agent.gpu_state}</span>
+                </div>
+                <div class="stat-group">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 5px">
+                        <span>CPU: ${agent.cpu_usage}%</span>
+                        <div style="width:100px; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:6px">
+                            <div style="width:${agent.cpu_usage}%; height:100%; background:var(--accent-color); border-radius:3px"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between">
+                        <span>RAM: ${agent.mem_usage}%</span>
+                        <div style="width:100px; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:6px">
+                            <div style="width:${agent.mem_usage}%; height:100%; background:#ff00ff; border-radius:3px"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top: 5px; font-size: 0.8rem; opacity: 0.8">
+                        <span>NET ↓: ${agent.net_in} KB/s</span>
+                        <span>NET ↑: ${agent.net_out} KB/s</span>
+                    </div>
+                    <div style="margin-top:10px; font-size: 0.75rem; opacity:0.5">
+                        Heartbeat: ${new Date(agent.last_heartbeat).toLocaleTimeString()}
+                    </div>
+                </div>
+            `;
+        }
+
+        function removeAgent(id) {
+            const el = document.getElementById(`agent-${id}`);
+            if (el) el.remove();
+        }
+
+        // Fetch initial list
+        fetch('/api/agents')
+            .then(res => res.json())
+            .then(agents => agents.forEach(updateAgent));
+    </script>
+</body>
+
+</html>

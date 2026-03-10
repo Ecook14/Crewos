@@ -1,0 +1,8 @@
+FROM scratch
+# GPU-Enabled Base Image for CrewOS GPU Variant (60-150MB expected)
+
+# Add GPU-enabled root filesystem
+ADD build/crewos-gpu-rootfs.tar.gz /
+
+# Define the default entrypoint
+ENTRYPOINT ["/init"]

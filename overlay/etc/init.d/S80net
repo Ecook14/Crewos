@@ -1,0 +1,31 @@
+#!/bin/sh
+# CrewOS Network Interface Optimization
+
+case "$1" in
+  start)
+    echo "[Network] Optimizing interfaces for high-concurrency agents..."
+    
+    # Identify the primary ethernet interface (usually eth0)
+    primary_if=$(ip route show default | awk '/default/ {print $5}')
+    if [ -z "$primary_if" ]; then primary_if="eth0"; fi
+
+    # 1. Increase Transmission Queue Length (txqueuelen)
+    # Reduces packet drops during heavy AI model transfers
+    if command -v ifconfig >/dev/null; then
+        ifconfig "$primary_if" txqueuelen 5000
+    else
+        ip link set "$primary_if" txqueuelen 5000
+    fi
+
+    # 2. Enable Transmit Segmentation Offload (if supported)
+    if command -v ethtool >/dev/null; then
+        ethtool -K "$primary_if" tso on gso on gro on 2>/dev/null || true
+    fi
+
+    echo "[Network] Optimization applied to $primary_if."
+    ;;
+  stop)
+    ;;
+esac
+
+exit 0

@@ -1,0 +1,35 @@
+# CrewOS Build Artifacts
+build/
+buildroot-output/
+overlay/usr/bin/crew-node
+overlay/usr/bin/sentinel
+*.tar.gz
+*.img
+*.iso
+*.ext4
+
+# Go Build Output & Dependencies
+bin/
+*.o
+*.test
+*.prof
+go.work
+go.work.sum
+
+# Secrets & Local Configs
+.env
+*.secret
+openai_key.txt
+
+# Editor & OS Specifics
+.vscode/
+.idea/
+.DS_Store
+.agents/
+Thumbs.db
+*.swp
+*~
+
+# WSL & Windows
+*.exe
+*.dll
